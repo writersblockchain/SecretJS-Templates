@@ -1,4 +1,10 @@
-const { Wallet, SecretNetworkClient, EncryptionUtilsImpl, fromUtf8, MsgExecuteContractResponse } = require("secretjs");
+const {
+  Wallet,
+  SecretNetworkClient,
+  EncryptionUtilsImpl,
+  fromUtf8,
+  MsgExecuteContractResponse,
+} = require("secretjs");
 
 const fs = require("fs");
 
@@ -11,13 +17,13 @@ const main = async () => {
   // Create a connection to Secret Network node
   // Pass in a wallet that can sign transactions
   // Docs: https://github.com/scrtlabs/secret.js#secretnetworkclient
-  const txEncryptionSeed = EncryptionUtilsImpl.GenerateNewSeed();
+  const EncryptionSeed = EncryptionUtilsImpl.GenerateNewSeed();
   const secretjs = new SecretNetworkClient({
     url: process.env.SECRET_LCD_URL,
     wallet: wallet,
     walletAddress: wallet.address,
     chainId: process.env.SECRET_CHAIN_ID,
-    txEncryptionSeed: txEncryptionSeed
+    EncryptionSeed: EncryptionSeed,
   });
   console.log(`Wallet address=${wallet.address}`);
   const accAddress = wallet.address;
@@ -37,7 +43,7 @@ const main = async () => {
       gasLimit: 3_200_000,
     }
   );
-  console.log('Upload tx hash', tx.transactionHash)
+  console.log("Upload tx hash", tx.transactionHash);
 
   const codeId = Number(
     tx.arrayLog.find((log) => log.type === "message" && log.key === "code_id")
@@ -47,9 +53,11 @@ const main = async () => {
 
   console.log("codeId: ", codeId);
   // contract hash, useful for contract composition
-  const contractCodeHash = (await secretjs.query.compute.codeHashByCodeId({code_id: codeId})).code_hash;
+  const contractCodeHash = (
+    await secretjs.query.compute.codeHashByCodeId({ code_id: codeId })
+  ).code_hash;
   console.log(`Contract hash: ${contractCodeHash}`);
-  
+
   const initMsg = {
     name: "test",
     symbol: "STOKE",
@@ -61,9 +69,9 @@ const main = async () => {
       enable_deposit: true,
       enable_redeem: true,
       enable_mint: true,
-      enable_burn:true
+      enable_burn: true,
     },
-    supported_denoms:["uscrt"],
+    supported_denoms: ["uscrt"],
     initial_balances: [
       {
         address: accAddress,
@@ -84,7 +92,7 @@ const main = async () => {
       gasLimit: 100_000,
     }
   );
-  console.log('Instantiate tx hash', tx.transactionHash)
+  console.log("Instantiate tx hash", tx.transactionHash);
 
   //Find the contract_address in the logs
   const contractAddress = tx.arrayLog.find(
@@ -94,13 +102,13 @@ const main = async () => {
 
   // Query permit to view balance
   const permit = await secretjs.utils.accessControl.permit.sign(
-      wallet.address,
-      "pulsar-3",
-      "test",
-      [contractAddress],
-      ["owner", "balance"],
-      false,
-    );
+    wallet.address,
+    "pulsar-3",
+    "test",
+    [contractAddress],
+    ["owner", "balance"],
+    false
+  );
 
   let query = await secretjs.query.snip20.getBalance({
     contract: { address: contractAddress, code_hash: contractCodeHash },
@@ -116,7 +124,7 @@ const main = async () => {
   console.log("Depositing tokens");
 
   handleMsg = {
-    deposit: {}
+    deposit: {},
   };
 
   tx = await secretjs.tx.compute.executeContract(
@@ -127,16 +135,16 @@ const main = async () => {
       msg: handleMsg,
       sent_funds: [
         {
-          denom: 'uscrt',
-          amount: '2000000' // 2 SCRT
-        }
+          denom: "uscrt",
+          amount: "2000000", // 2 SCRT
+        },
       ],
     },
     {
       gasLimit: 100_000,
     }
   );
-  console.log('deposit tx hash', tx.transactionHash);
+  console.log("deposit tx hash", tx.transactionHash);
 
   query = await secretjs.query.snip20.getBalance({
     contract: { address: contractAddress, code_hash: contractCodeHash },
@@ -166,13 +174,13 @@ const main = async () => {
       sender: wallet.address,
       contract_address: contractAddress,
       code_hash: contractCodeHash,
-      msg: handleMsg
+      msg: handleMsg,
     },
     {
       gasLimit: 100_000,
     }
   );
-  console.log('transfer tx hash', tx.transactionHash);
+  console.log("transfer tx hash", tx.transactionHash);
 
   query = await secretjs.query.snip20.getBalance({
     contract: { address: contractAddress, code_hash: contractCodeHash },

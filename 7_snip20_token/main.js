@@ -1,4 +1,10 @@
-const { Wallet, SecretNetworkClient, EncryptionUtilsImpl, fromUtf8, MsgExecuteContractResponse } = require("secretjs");
+const {
+  Wallet,
+  SecretNetworkClient,
+  EncryptionUtilsImpl,
+  fromUtf8,
+  MsgExecuteContractResponse,
+} = require("secretjs");
 
 const fs = require("fs");
 
@@ -11,13 +17,13 @@ const main = async () => {
   // Create a connection to Secret Network node
   // Pass in a wallet that can sign transactions
   // Docs: https://github.com/scrtlabs/secret.js#secretnetworkclient
-  const txEncryptionSeed = EncryptionUtilsImpl.GenerateNewSeed();
+  const EncryptionSeed = EncryptionUtilsImpl.GenerateNewSeed();
   const secretjs = new SecretNetworkClient({
     url: process.env.SECRET_LCD_URL,
     wallet: wallet,
     walletAddress: wallet.address,
     chainId: process.env.SECRET_CHAIN_ID,
-    txEncryptionSeed: txEncryptionSeed
+    EncryptionSeed: EncryptionSeed,
   });
   console.log(`Wallet address=${wallet.address}`);
   const accAddress = wallet.address;
@@ -45,7 +51,9 @@ const main = async () => {
 
   console.log("codeId: ", codeId);
   // contract hash, useful for contract composition
-  const contractCodeHash = (await secretjs.query.compute.codeHashByCodeId({code_id: codeId})).code_hash;
+  const contractCodeHash = (
+    await secretjs.query.compute.codeHashByCodeId({ code_id: codeId })
+  ).code_hash;
   console.log(`Contract hash: ${contractCodeHash}`);
 
   // Create an instance of the token contract, minting some tokens to our wallet
@@ -101,7 +109,9 @@ const main = async () => {
   );
 
   // Convert the UTF8 bytes to String, before parsing the JSON for the api key.
-  const apiKey = JSON.parse(fromUtf8(MsgExecuteContractResponse.decode(tx.data[0]).data)).create_viewing_key.key;
+  const apiKey = JSON.parse(
+    fromUtf8(MsgExecuteContractResponse.decode(tx.data[0]).data)
+  ).create_viewing_key.key;
 
   // Query balance with the api key
   const balanceQuery = {
@@ -136,7 +146,7 @@ const main = async () => {
       sender: wallet.address,
       contract_address: contractAddress,
       code_hash: contractCodeHash,
-      msg: handleMsg
+      msg: handleMsg,
     },
     {
       gasLimit: 100_000,
